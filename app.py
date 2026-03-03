@@ -2,89 +2,101 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import requests
+import os
 
-# ------------------------
-# CONFIG
-# ------------------------
+# ----------------------------
+# PAGE CONFIG
+# ----------------------------
 st.set_page_config(page_title="MarketSim Pakistan", layout="wide")
 
-HUGGINGFACE_API_KEY = "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"
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
-
-headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-
-# ------------------------
-# AI FUNCTION
-# ------------------------
-def generate_ai_strategy(prompt):
-    payload = {"inputs": prompt}
-    response = requests.post(API_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()[0]["generated_text"]
-    else:
-        return "AI service busy. Try again."
-
-# ------------------------
-# UI DESIGN
-# ------------------------
+# ----------------------------
+# DIGITAL THEME
+# ----------------------------
 st.markdown("""
 <style>
 body {
     background-color: #0E1117;
 }
-.big-title {
+.block-container {
+    padding-top: 2rem;
+}
+.title-gradient {
     font-size:48px;
-    font-weight:800;
-    background: linear-gradient(90deg,#00C9FF,#92FE9D);
+    font-weight:900;
+    background: linear-gradient(90deg,#00F5A0,#00D9F5);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.card {
-    background-color: #161B22;
-    padding: 20px;
-    border-radius: 15px;
-    margin-bottom: 20px;
+.section-title {
+    font-size:22px;
+    font-weight:700;
+    color:#00F5A0;
+    margin-top:20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="big-title">MarketSim Pakistan</p>', unsafe_allow_html=True)
-st.caption("AI-Powered Marketing Intelligence Engine")
+st.markdown('<p class="title-gradient">MarketSim Pakistan</p>', unsafe_allow_html=True)
+st.caption("AI-Powered Marketing Intelligence & ROI Simulation Engine")
 
-# ------------------------
+# ----------------------------
 # LOAD DATA
-# ------------------------
+# ----------------------------
 areas_df = pd.read_excel("data/areas.xlsx")
 benchmarks_df = pd.read_excel("data/industry_benchmarks.xlsx")
 influencers_df = pd.read_excel("data/influencers.xlsx")
 vendors_df = pd.read_excel("data/vendors.xlsx")
 
-# ------------------------
+# ----------------------------
 # INPUT SECTION
-# ------------------------
-st.header("Business Input")
+# ----------------------------
+st.markdown('<p class="section-title">Business Input</p>', unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
-
-with col1:
-    industry = st.selectbox("Select Industry", benchmarks_df["Industry"].unique())
-    budget = st.number_input("Total Budget (PKR)", min_value=50000)
-
-with col2:
-    city = st.selectbox("Select City", areas_df["City"].unique())
-    goal = st.selectbox("Campaign Goal", ["Sales", "Brand Awareness", "Lead Generation"])
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Expected Revenue", f"PKR {int(expected_revenue):,}")
-col2.metric("Conservative", f"PKR {int(conservative):,}")
-col3.metric("Aggressive", f"PKR {int(aggressive):,}")
-# ------------------------
-# GENERATE STRATEGY
-# ------------------------
-if st.button("Generate Market Strategy"):
+with col1:
+    industry = st.selectbox("Industry", benchmarks_df["Industry"].unique())
 
+with col2:
+    city = st.selectbox("City", areas_df["City"].unique())
+
+with col3:
+    budget = st.number_input("Marketing Budget (PKR)", min_value=50000)
+
+goal = st.selectbox("Campaign Goal", ["Sales", "Brand Awareness", "Lead Generation"])
+
+# ----------------------------
+# AI FUNCTION
+# ----------------------------
+def generate_ai_strategy(prompt):
+    try:
+        api_key = os.environ.get("HUGGINGFACE_API_KEY")
+        if not api_key:
+            return None
+        
+        API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        payload = {"inputs": prompt}
+        
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            return response.json()[0]["generated_text"]
+        else:
+            return None
+    except:
+        return None
+
+# ----------------------------
+# MAIN BUTTON
+# ----------------------------
+if st.button("Generate Market Intelligence Report"):
+
+    # ----------------------------
     # AREA SCORING
+    # ----------------------------
     city_areas = areas_df[areas_df["City"] == city].copy()
+
     city_areas["Score"] = (
         city_areas["Income_Score"] * 0.30 +
         city_areas["Footfall_Score"] * 0.25 +
@@ -95,45 +107,108 @@ if st.button("Generate Market Strategy"):
 
     top_areas = city_areas.sort_values("Score", ascending=False).head(3)
 
-    st.subheader("Top Recommended Areas")
-    st.dataframe(top_areas[["Area", "Score"]])
+    st.markdown('<p class="section-title">Top Recommended Areas</p>', unsafe_allow_html=True)
 
-    # ROI SIMULATION
+    fig_area = px.bar(
+        top_areas,
+        x="Area",
+        y="Score",
+        color="Score",
+        color_continuous_scale="Tealgrn"
+    )
+    st.plotly_chart(fig_area, use_container_width=True)
+
+    # ----------------------------
+    # ROI CALCULATION
+    # ----------------------------
     benchmark = benchmarks_df[benchmarks_df["Industry"] == industry].iloc[0]
 
-    conversion = benchmark["Conversion_Rate"]
-    avg_value = benchmark["Avg_Customer_Value"]
+    conversion = float(benchmark["Conversion_Rate"])
+    avg_value = float(benchmark["Avg_Customer_Value"])
 
     expected_revenue = (budget * conversion) * avg_value / 1000
     conservative = expected_revenue * 0.7
     aggressive = expected_revenue * 1.3
 
-    roi_data = pd.DataFrame({
-        "Scenario": ["Conservative", "Expected", "Aggressive"],
-        "Revenue": [conservative, expected_revenue, aggressive]
-    })
+    st.markdown('<p class="section-title">Revenue Simulation</p>', unsafe_allow_html=True)
 
-    st.subheader("ROI Simulation")
-    fig = px.bar(roi_data, x="Scenario", y="Revenue", color="Scenario")
-    st.plotly_chart(fig)
+    colA, colB, colC = st.columns(3)
+    colA.metric("Conservative", f"PKR {int(conservative):,}")
+    colB.metric("Expected", f"PKR {int(expected_revenue):,}")
+    colC.metric("Aggressive", f"PKR {int(aggressive):,}")
 
+    # ----------------------------
+    # BUDGET ALLOCATION
+    # ----------------------------
+    st.markdown('<p class="section-title">Budget Allocation</p>', unsafe_allow_html=True)
+
+    allocation = {
+        "Digital Ads": budget * 0.35,
+        "Influencers": budget * 0.25,
+        "Outdoor Media": budget * 0.25,
+        "Podcast & Activation": budget * 0.15
+    }
+
+    alloc_df = pd.DataFrame(list(allocation.items()), columns=["Channel","Budget"])
+
+    fig_alloc = px.pie(
+        alloc_df,
+        names="Channel",
+        values="Budget",
+        hole=0.55
+    )
+
+    st.plotly_chart(fig_alloc, use_container_width=True)
+
+    # ----------------------------
     # INFLUENCERS
-    st.subheader("Influencer Suggestions")
+    # ----------------------------
+    st.markdown('<p class="section-title">Influencer Matches</p>', unsafe_allow_html=True)
     st.dataframe(influencers_df[influencers_df["City"] == city])
 
+    # ----------------------------
     # VENDORS
-    st.subheader("Vendor Suggestions")
+    # ----------------------------
+    st.markdown('<p class="section-title">Vendor Options</p>', unsafe_allow_html=True)
     st.dataframe(vendors_df[vendors_df["City"] == city])
 
-    # AI STRATEGY
-    st.subheader("AI Marketing Plan")
+    # ----------------------------
+    # ACTION PLAN
+    # ----------------------------
+    st.markdown('<p class="section-title">Strategic Action Plan</p>', unsafe_allow_html=True)
 
     prompt = f"""
-    Create a marketing strategy for a {industry} in {city}
-    with a budget of {budget} PKR.
-    Focus on {goal}.
-    Suggest campaign ideas, hooks, and promotional tactics.
+    Create a structured marketing action plan for a {industry} in {city}.
+    Budget: {budget} PKR.
+    Goal: {goal}.
+    Include area focus, channel strategy, influencer usage, promotional hooks, SEO keywords, and risk level.
     """
 
     ai_output = generate_ai_strategy(prompt)
-    st.success(ai_output)
+
+    if ai_output:
+        st.markdown(ai_output)
+    else:
+        st.markdown(f"""
+        ### Recommended Execution Plan
+        
+        **1. Area Strategy:** Focus on top commercial zones.
+        
+        **2. Channel Mix:**  
+        - 35% Digital Ads  
+        - 25% Influencers  
+        - 25% Outdoor Media  
+        - 15% Podcast & Activation
+        
+        **3. Promotional Hooks:**  
+        - Limited Time Offer  
+        - Seasonal Discount  
+        - Referral Campaign
+        
+        **4. SEO Keywords:**  
+        - Best {industry} in {city}  
+        - Affordable {industry} services  
+        - Top-rated {industry}
+        
+        **5. Risk Level:** Moderate
+        """)output)

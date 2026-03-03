@@ -4,14 +4,14 @@ import plotly.express as px
 import requests
 import os
 
-# ----------------------------
+# ------------------------------------------------
 # PAGE CONFIG
-# ----------------------------
+# ------------------------------------------------
 st.set_page_config(page_title="MarketSim Pakistan", layout="wide")
 
-# ----------------------------
-# DIGITAL THEME
-# ----------------------------
+# ------------------------------------------------
+# DIGITAL UI STYLE
+# ------------------------------------------------
 st.markdown("""
 <style>
 body {
@@ -39,17 +39,17 @@ body {
 st.markdown('<p class="title-gradient">MarketSim Pakistan</p>', unsafe_allow_html=True)
 st.caption("AI-Powered Marketing Intelligence & ROI Simulation Engine")
 
-# ----------------------------
+# ------------------------------------------------
 # LOAD DATA
-# ----------------------------
+# ------------------------------------------------
 areas_df = pd.read_excel("data/areas.xlsx")
 benchmarks_df = pd.read_excel("data/industry_benchmarks.xlsx")
 influencers_df = pd.read_excel("data/influencers.xlsx")
 vendors_df = pd.read_excel("data/vendors.xlsx")
 
-# ----------------------------
+# ------------------------------------------------
 # INPUT SECTION
-# ----------------------------
+# ------------------------------------------------
 st.markdown('<p class="section-title">Business Input</p>', unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
@@ -65,21 +65,21 @@ with col3:
 
 goal = st.selectbox("Campaign Goal", ["Sales", "Brand Awareness", "Lead Generation"])
 
-# ----------------------------
+# ------------------------------------------------
 # AI FUNCTION
-# ----------------------------
+# ------------------------------------------------
 def generate_ai_strategy(prompt):
     try:
         api_key = os.environ.get("HUGGINGFACE_API_KEY")
         if not api_key:
             return None
-        
+
         API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
         headers = {"Authorization": f"Bearer {api_key}"}
         payload = {"inputs": prompt}
-        
+
         response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
-        
+
         if response.status_code == 200:
             return response.json()[0]["generated_text"]
         else:
@@ -87,14 +87,12 @@ def generate_ai_strategy(prompt):
     except:
         return None
 
-# ----------------------------
+# ------------------------------------------------
 # MAIN BUTTON
-# ----------------------------
+# ------------------------------------------------
 if st.button("Generate Market Intelligence Report"):
 
-    # ----------------------------
     # AREA SCORING
-    # ----------------------------
     city_areas = areas_df[areas_df["City"] == city].copy()
 
     city_areas["Score"] = (
@@ -109,18 +107,10 @@ if st.button("Generate Market Intelligence Report"):
 
     st.markdown('<p class="section-title">Top Recommended Areas</p>', unsafe_allow_html=True)
 
-    fig_area = px.bar(
-        top_areas,
-        x="Area",
-        y="Score",
-        color="Score",
-        color_continuous_scale="Tealgrn"
-    )
+    fig_area = px.bar(top_areas, x="Area", y="Score", color="Score")
     st.plotly_chart(fig_area, use_container_width=True)
 
-    # ----------------------------
     # ROI CALCULATION
-    # ----------------------------
     benchmark = benchmarks_df[benchmarks_df["Industry"] == industry].iloc[0]
 
     conversion = float(benchmark["Conversion_Rate"])
@@ -137,9 +127,7 @@ if st.button("Generate Market Intelligence Report"):
     colB.metric("Expected", f"PKR {int(expected_revenue):,}")
     colC.metric("Aggressive", f"PKR {int(aggressive):,}")
 
-    # ----------------------------
     # BUDGET ALLOCATION
-    # ----------------------------
     st.markdown('<p class="section-title">Budget Allocation</p>', unsafe_allow_html=True)
 
     allocation = {
@@ -149,39 +137,28 @@ if st.button("Generate Market Intelligence Report"):
         "Podcast & Activation": budget * 0.15
     }
 
-    alloc_df = pd.DataFrame(list(allocation.items()), columns=["Channel","Budget"])
+    alloc_df = pd.DataFrame(list(allocation.items()), columns=["Channel", "Budget"])
 
-    fig_alloc = px.pie(
-        alloc_df,
-        names="Channel",
-        values="Budget",
-        hole=0.55
-    )
-
+    fig_alloc = px.pie(alloc_df, names="Channel", values="Budget", hole=0.5)
     st.plotly_chart(fig_alloc, use_container_width=True)
 
-    # ----------------------------
     # INFLUENCERS
-    # ----------------------------
     st.markdown('<p class="section-title">Influencer Matches</p>', unsafe_allow_html=True)
     st.dataframe(influencers_df[influencers_df["City"] == city])
 
-    # ----------------------------
     # VENDORS
-    # ----------------------------
     st.markdown('<p class="section-title">Vendor Options</p>', unsafe_allow_html=True)
     st.dataframe(vendors_df[vendors_df["City"] == city])
 
-    # ----------------------------
     # ACTION PLAN
-    # ----------------------------
     st.markdown('<p class="section-title">Strategic Action Plan</p>', unsafe_allow_html=True)
 
     prompt = f"""
     Create a structured marketing action plan for a {industry} in {city}.
     Budget: {budget} PKR.
     Goal: {goal}.
-    Include area focus, channel strategy, influencer usage, promotional hooks, SEO keywords, and risk level.
+    Include area focus, channel mix, influencer strategy,
+    promotional hooks, SEO keywords, and risk level.
     """
 
     ai_output = generate_ai_strategy(prompt)
@@ -192,23 +169,18 @@ if st.button("Generate Market Intelligence Report"):
         st.markdown(f"""
         ### Recommended Execution Plan
         
-        **1. Area Strategy:** Focus on top commercial zones.
+        **1. Focus Areas:** {", ".join(top_areas["Area"].tolist())}
         
-        **2. Channel Mix:**  
-        - 35% Digital Ads  
-        - 25% Influencers  
-        - 25% Outdoor Media  
-        - 15% Podcast & Activation
+        **2. Channel Allocation:**
+        - 35% Digital Ads
+        - 25% Influencers
+        - 25% Outdoor Media
+        - 15% Podcast
         
-        **3. Promotional Hooks:**  
-        - Limited Time Offer  
-        - Seasonal Discount  
-        - Referral Campaign
+        **3. SEO Focus:**
+        - Best {industry} in {city}
+        - Affordable {industry}
+        - Top rated {industry}
         
-        **4. SEO Keywords:**  
-        - Best {industry} in {city}  
-        - Affordable {industry} services  
-        - Top-rated {industry}
-        
-        **5. Risk Level:** Moderate
-        """)output)
+        **Risk Level:** Moderate
+        """)

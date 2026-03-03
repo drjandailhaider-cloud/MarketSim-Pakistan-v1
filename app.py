@@ -29,21 +29,27 @@ def generate_ai_strategy(prompt):
 # ------------------------
 st.markdown("""
 <style>
-.main-title {
-    font-size:42px;
-    font-weight:bold;
-    color:#0A3D62;
+body {
+    background-color: #0E1117;
 }
-.box {
-    background-color:#F5F6FA;
-    padding:20px;
-    border-radius:10px;
+.big-title {
+    font-size:48px;
+    font-weight:800;
+    background: linear-gradient(90deg,#00C9FF,#92FE9D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.card {
+    background-color: #161B22;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="main-title">🇵🇰 MarketSim Pakistan</p>', unsafe_allow_html=True)
-st.write("AI-Powered Marketing Intelligence & ROI Simulation Engine")
+st.markdown('<p class="big-title">MarketSim Pakistan</p>', unsafe_allow_html=True)
+st.caption("AI-Powered Marketing Intelligence Engine")
 
 # ------------------------
 # LOAD DATA

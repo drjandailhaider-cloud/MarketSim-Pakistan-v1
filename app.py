@@ -73,7 +73,11 @@ with col1:
 with col2:
     city = st.selectbox("Select City", areas_df["City"].unique())
     goal = st.selectbox("Campaign Goal", ["Sales", "Brand Awareness", "Lead Generation"])
+col1, col2, col3 = st.columns(3)
 
+col1.metric("Expected Revenue", f"PKR {int(expected_revenue):,}")
+col2.metric("Conservative", f"PKR {int(conservative):,}")
+col3.metric("Aggressive", f"PKR {int(aggressive):,}")
 # ------------------------
 # GENERATE STRATEGY
 # ------------------------
